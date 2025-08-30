@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/nkchakradhari780/catalogServices/internal/api"
 	"github.com/nkchakradhari780/catalogServices/internal/config"
 )
 
@@ -20,9 +21,7 @@ func main() {
 	//Router Setup
 	router := http.NewServeMux()
 
-	router.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("welcome to Catalog Services API"))
-	})
+	router.HandleFunc("POST /admin/products", api.New())
 	//Server Setup
 	server := http.Server{
 		Addr:    cfg.HTTPServer.Addr,
