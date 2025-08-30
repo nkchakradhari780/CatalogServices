@@ -1,9 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/nkchakradhari780/catalogServices/internal/config"
 )
@@ -24,10 +29,29 @@ func main() {
 		Handler: router,
 	}
 
-	fmt.Println("Server Started")
-	err := server.ListenAndServe()
-	if err != nil {
-		log.Fatalf("Failed to start server %s\n", err.Error())
+	slog.Info("Server started", slog.String("address", cfg.HTTPServer.Addr))
+
+	done := make(chan os.Signal, 1)
+
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Fatalf("Failed to start server %s\n", err.Error())
+		}
+
+	}()
+
+	<-done
+	slog.Info("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		slog.Error("Failed to shutdown server", slog.String("error", err.Error()))
 	}
+
+	slog.Info("Server exited properly")
 
 }
