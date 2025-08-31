@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/nkchakradhari780/catalogServices/internal/modules"
@@ -14,7 +15,7 @@ import (
 	"github.com/nkchakradhari780/catalogServices/internal/utils/response"
 )
 
-func New(storage storage.Storage) http.HandlerFunc {
+func CreateNewProduct(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var product modules.Product
@@ -48,3 +49,28 @@ func New(storage storage.Storage) http.HandlerFunc {
 
 	}
 }
+
+func GetProductById(storage storage.Storage) http.HandlerFunc {
+	return func (w http.ResponseWriter, r *http.Request) {
+		idStr := r.PathValue("id")
+		slog.Info("Fetching Product", slog.String("productId", idStr))
+
+
+		id, err := strconv.Atoi(idStr)
+        if err != nil {
+            slog.Error("Invalid product id", slog.String("productId", idStr), slog.String("error", err.Error()))
+            response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("invalid product id")))
+            return
+        }
+		product, err := storage.GetProductById(id) 
+		if err != nil {
+			slog.Error("Error fetching product", slog.String("productId", idStr), slog.String("error", err.Error()))
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJson(w, http.StatusOK, product)
+	}
+}
+
+

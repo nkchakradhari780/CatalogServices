@@ -6,6 +6,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/nkchakradhari780/catalogServices/internal/config"
+	"github.com/nkchakradhari780/catalogServices/internal/modules"
 )
 
 type Postgres struct {
@@ -66,4 +67,24 @@ func (p *Postgres) CreateProduct(name string, price int, stock int, categoryId s
 	}
 
 	return int(lastId), nil
+}
+
+func (p *Postgres) GetProductById(id int) (modules.Product, error) {
+	stmt, err := p.Db.Prepare("SELECT * FROM products WHERE id = $1")
+	if err != nil {
+		return modules.Product{}, err
+	}
+	defer stmt.Close()
+
+	var product modules.Product
+
+	err = stmt.QueryRow(id).Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return modules.Product{}, fmt.Errorf("product with id %d not found", id)
+		}
+		return modules.Product{}, fmt.Errorf("error fetching product: %v", err)
+	}
+
+	return product, nil
 }

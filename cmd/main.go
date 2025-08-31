@@ -30,7 +30,8 @@ func main() {
 	//Router Setup
 	router := http.NewServeMux()
 
-	router.HandleFunc("POST /admin/products", api.New(storage))
+	router.HandleFunc("POST /admin/products", api.CreateNewProduct(storage))
+	router.HandleFunc("GET /product/{id}", api.GetProductById(storage))
 
 	//Server Setup
 	server := http.Server{
