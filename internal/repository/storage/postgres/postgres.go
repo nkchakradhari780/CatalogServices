@@ -37,8 +37,8 @@ func New(cfg *config.Config) (*Postgres, error)  {
 	category_id INT NOT NULL,                  -- category reference
 	brand       VARCHAR(100) NOT NULL,          -- product brand
 	images      TEXT[]                          -- array of image URLs
-);
-`)
+		);
+	`)
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +84,53 @@ func (p *Postgres) GetProductById(id int) (modules.Product, error) {
 			return modules.Product{}, fmt.Errorf("product with id %d not found", id)
 		}
 		return modules.Product{}, fmt.Errorf("error fetching product: %v", err)
+	}
+
+	return product, nil
+}
+
+func (p *Postgres) GetProducts() ([]modules.Product, error) {
+	stmt, err := p.Db.Prepare("SELECT * FROM products")
+	if err != nil {
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	rows, err := stmt.Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var products []modules.Product
+	
+	for rows.Next() {
+		var product modules.Product
+		err := rows.Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+		if err != nil {
+			return nil, err
+		}
+		products = append(products, product)
+	}
+	return products, nil
+}
+
+func (p *Postgres) UpdateProductById(id int, name string, price int, stock int, categoryId string, Brand string, Images []string)  (modules.Product, error) {
+	stmt, err := p.Db.Prepare("UPDATE products SET name = $1, price = $2, stock = $3, category_id = $4, brand = $5, images = $6 WHERE id = $7 RETURNING *")
+	if err != nil {
+		return modules.Product{},err
+	}
+	defer stmt.Close()
+
+	var product modules.Product
+	err = stmt.QueryRow(name, price, stock, categoryId, Brand, pq.Array(Images), id).Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return modules.Product{}, fmt.Errorf("product with id %d not found", id)
+		}
+		return modules.Product{}, fmt.Errorf("error updating product: %v", err)
 	}
 
 	return product, nil

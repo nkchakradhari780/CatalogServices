@@ -31,7 +31,9 @@ func main() {
 	router := http.NewServeMux()
 
 	router.HandleFunc("POST /admin/products", api.CreateNewProduct(storage))
-	router.HandleFunc("GET /product/{id}", api.GetProductById(storage))
+	router.HandleFunc("PUT /admin/products/{id}", api.UpdateProductById(storage))
+	router.HandleFunc("GET /products/{id}", api.GetProductById(storage))
+	router.HandleFunc("GET /products/", api.GetProducts(storage))
 
 	//Server Setup
 	server := http.Server{
