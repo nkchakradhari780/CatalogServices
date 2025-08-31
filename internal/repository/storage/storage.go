@@ -7,4 +7,6 @@ type Storage interface {
 	GetProductById(id int) (modules.Product, error)
 	GetProducts() ([]modules.Product, error)
 	UpdateProductById(id int, name string, price int, stock int, categoryId string, brand string, images []string) (modules.Product, error)
+	DeleteProductById(id int) error
+
 }

@@ -130,3 +130,22 @@ func UpdateProductById(storage storage.Storage) http.HandlerFunc {
 	}
 }
 
+func DeleteProductById(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("Deleting Product")
+
+		idStr := r.PathValue("id")
+		id, err := strconv.Atoi(idStr) 
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			return 
+		}
+		if err = storage.DeleteProductById(id); err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return 
+		}
+
+		response.WriteJson(w, http.StatusOK, map[string]string{"result": "success"})
+		
+	}
+}

@@ -135,3 +135,20 @@ func (p *Postgres) UpdateProductById(id int, name string, price int, stock int, 
 
 	return product, nil
 }
+
+func (p *Postgres) DeleteProductById(id int) error {
+	stmt, err := p.Db.Prepare("DELETE FROM products WHERE id = $1")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+	 
+	_ , err = stmt.Exec(id)
+	if err != nil {
+		return fmt.Errorf("error deleting product %w", err)
+	}
+
+	return nil
+
+}
