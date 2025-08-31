@@ -12,16 +12,26 @@ import (
 
 	"github.com/nkchakradhari780/catalogServices/internal/api"
 	"github.com/nkchakradhari780/catalogServices/internal/config"
+	"github.com/nkchakradhari780/catalogServices/internal/repository/storage/postgres"
 )
 
 func main() {
 	// Load configuration
 	cfg := config.MustLoad()
 	//Database Setup
+
+	storage, err := postgres.New(cfg)
+	if err != nil {
+		log.Fatalf("Failed to Connect to database %s", err)
+	}
+
+	slog.Info("Connected to Database")
+
 	//Router Setup
 	router := http.NewServeMux()
 
-	router.HandleFunc("POST /admin/products", api.New())
+	router.HandleFunc("POST /admin/products", api.New(storage))
+
 	//Server Setup
 	server := http.Server{
 		Addr:    cfg.HTTPServer.Addr,

@@ -12,10 +12,22 @@ type HTTPServer struct {
 	Addr string `yaml:"address" env:"HTTP_SERVER_ADDRESS" env-require:"true"`
 }
 
-type Config struct {
-	Env        string     `yaml:"env" env:"ENV" env-require:"true" env-default:"production"`
-	HTTPServer HTTPServer `yaml:"http_server" env:"HTTP_SERVER" env-require:"true"`
+type Database struct {
+    Host     string `yaml:"host" env:"DATABASE_HOST" env-required:"true"`
+    Port     int    `yaml:"port" env:"DATABASE_PORT" env-required:"true"`
+    Name     string `yaml:"name" env:"DATABASE_NAME" env-required:"true"`
+    Username string `yaml:"username" env:"DATABASE_USERNAME" env-required:"true"`
+    Password string `yaml:"password" env:"DATABASE_PASSWORD" env-required:"true"`
+    SSLMode  string `yaml:"sslmode" env:"DATABASE_SSLMODE" env-default:"disable"`
 }
+
+
+type Config struct {
+    Env        string     `yaml:"env" env:"ENV" env-required:"true" env-default:"production"`
+    HTTPServer HTTPServer `yaml:"http_server" env-required:"true"`
+    Database   Database   `yaml:"database" env-required:"true"`
+}
+
 
 func MustLoad() *Config {
 	var configPath string

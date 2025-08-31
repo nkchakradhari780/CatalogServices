@@ -1,0 +1,7 @@
+version: '3'
+
+tasks:
+  dev:
+    cmds:
+      - CompileDaemon -exclude-dir=tmp -build="go build -o ./tmp/main.exe ./cmd/main.go" -command="./tmp/main.exe"
+    silent: false
