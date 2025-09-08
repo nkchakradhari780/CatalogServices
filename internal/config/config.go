@@ -36,7 +36,7 @@ func MustLoad() *Config {
 	if configPath == "" {
 		flags := flag.String("config", "D:/Infosoft_solutions/CatalogServices/config/local.yaml", "path to the configration file")
 		flag.Parse()
-
+  
 		configPath = *flags
 
 		if configPath == "" {

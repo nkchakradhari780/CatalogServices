@@ -117,6 +117,102 @@ func (p *Postgres) GetProducts() ([]modules.Product, error) {
 	return products, nil
 }
 
+func (p *Postgres) GetDefaultProducts() ([]modules.Product, error) {
+	stms, err := p.Db.Prepare(`SELECT id, name, price, stock, category_id, brand, images
+					FROM products
+					ORDER BY RANDOM()
+					LIMIT 50;
+				`)
+	if err != nil {
+		return  nil, err
+	}
+	defer stms.Close()
+
+	rows, err := stms.Query()
+	if err != nil {
+		return  nil, err
+	}
+
+	defer rows.Close()
+
+	var products []modules.Product
+
+	for rows.Next() {
+		var product modules.Product
+		err := rows.Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+		if err != nil {
+			return nil, err
+		}
+		products = append(products, product)
+	}
+	return products, nil
+	
+}
+
+func (p *Postgres) GetFilteredProducts(filters map[string][]string) ([]modules.Product, error) {
+	query := `SELECT id, name, price, stock, category_id, brand, images FROM products WHERE 1=1 `
+	args := []any{}
+	argID := 1
+
+	// Building Dynamic query
+	if name, ok := filters["name"]; ok {
+		query += fmt.Sprintf("AND name ILIKE $%d ", argID)
+		args = append(args, "%"+name[0]+"%")
+		argID++
+	}
+
+	if brand, ok := filters["brand"]; ok {
+		query += fmt.Sprintf("AND brand = $%d ", argID)
+		args = append(args, brand[0])
+		argID++
+	}
+
+	if category, ok := filters["category_id"]; ok {
+		query += fmt.Sprintf("AND category_id = $%d ", argID)
+		args = append(args, category[0])
+		argID++
+	}
+
+	if minPrice, ok := filters["min_price"]; ok {
+		query += fmt.Sprintf("AND price >= $%d ", argID)
+		args = append(args, minPrice[0])
+		argID++
+	}
+
+	if maxPrice, ok := filters["max_price"]; ok {
+		query += fmt.Sprintf("AND price <= $%d ", argID)
+		args = append(args, maxPrice[0])
+		argID++
+	}
+
+	if stockGT, ok := filters["stock_gt"]; ok {
+		query += fmt.Sprintf("AND stock > $%d ", argID)
+		args = append(args, stockGT[0])
+		argID++
+	}
+
+	query += "ORDER BY id DESC LIMIT 50"
+
+	rows, err := p.Db.Query(query, args...)
+	if err!= nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []modules.Product
+	for rows.Next() {
+		var product modules.Product
+		err := rows.Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+		if err != nil {
+			return nil, err
+		}
+
+		products = append(products, product)
+	}
+
+	return  products, nil
+}
+
 func (p *Postgres) UpdateProductById(id int, name string, price int, stock int, categoryId string, Brand string, Images []string)  (modules.Product, error) {
 	stmt, err := p.Db.Prepare("UPDATE products SET name = $1, price = $2, stock = $3, category_id = $4, brand = $5, images = $6 WHERE id = $7 RETURNING *")
 	if err != nil {

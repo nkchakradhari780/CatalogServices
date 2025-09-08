@@ -88,6 +88,36 @@ func GetProducts(storage storage.Storage) http.HandlerFunc {
 	}
 }
 
+func GetDefaultProducts(storate storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request){
+		slog.Info("Fetching Default Products")
+
+		products, err := storate.GetDefaultProducts()
+		if err != nil {
+			fmt. Println("Error Fetching products: ", err)
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError((err)))
+			return 
+		}
+
+		response.WriteJson(w, http.StatusOK, products)
+	}
+}
+
+func GetFilteredProducts(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("Fetching Filtered products")
+		filters := r.URL.Query()
+
+		products, err := storage.GetFilteredProducts(filters)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return 
+		}
+
+		response.WriteJson(w, http.StatusOK, products)
+	}
+}
+
 func UpdateProductById(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Updating Product")

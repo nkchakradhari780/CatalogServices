@@ -25,16 +25,18 @@ func main() {
 		log.Fatalf("Failed to Connect to database %s", err)
 	}
 
-	slog.Info("Connected to Database")
+	slog.Info("Connected to Database") 
 
 	//Router Setup
-	router := http.NewServeMux()
+	router := http.NewServeMux() 
 
 	router.HandleFunc("POST /admin/products", api.CreateNewProduct(storage))
 	router.HandleFunc("PUT /admin/products/{id}", api.UpdateProductById(storage))
 	router.HandleFunc("DELETE /admin/products/{id}", api.DeleteProductById(storage))
 	router.HandleFunc("GET /products/{id}", api.GetProductById(storage))
 	router.HandleFunc("GET /products/", api.GetProducts(storage))
+	router.HandleFunc("GET /products/default", api.GetDefaultProducts(storage))
+	router.HandleFunc("GET /products/filtered", api.GetFilteredProducts(storage))
 
 	//Server Setup
 	server := http.Server{
