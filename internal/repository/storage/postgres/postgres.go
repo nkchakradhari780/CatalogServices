@@ -123,6 +123,17 @@ func (p *Postgres) GetProducts() ([]modules.Product, error) {
 }
 
 func (p *Postgres) GetDefaultProducts() ([]modules.Product, error) {
+	cacheKey := "default_products"
+
+	cached,err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	if err == nil {
+		var products []modules.Product
+		if unmarshalErr := json.Unmarshal([]byte(cached), &products); unmarshalErr == nil {
+			fmt.Println("Redis cache hit")
+			return products, nil
+		}
+	}
+
 	stms, err := p.Db.Prepare(`SELECT id, name, price, stock, category_id, brand, images
 					FROM products
 					ORDER BY RANDOM()
@@ -150,8 +161,12 @@ func (p *Postgres) GetDefaultProducts() ([]modules.Product, error) {
 		}
 		products = append(products, product)
 	}
-	return products, nil
 	
+	data, _ := json.Marshal(products)
+	cache.Rdb.Set(cache.Ctx, cacheKey, data, 7*24*time.Hour)
+	
+	fmt.Println("Cache missed fetching data from DB.")
+	return products, nil
 }
 
 func (p *Postgres) GetFilteredProducts(filters map[string][]string) ([]modules.Product, error) {
@@ -234,6 +249,7 @@ func (p *Postgres) UpdateProductById(id int, name string, price int, stock int, 
 		return modules.Product{}, fmt.Errorf("error updating product: %v", err)
 	}
 
+	InvalidateProductCache()
 	return product, nil
 }
 
@@ -276,7 +292,7 @@ func (p *Postgres) GetProductsWithRedisCache() ([]modules.Product,error) {
 	data, _ := json.Marshal(products)
 	cache.Rdb.Set(cache.Ctx, cacheKey, data, 7*24*time.Hour)
 
-	fmt.Println(" Cache miss -data fetched from DB")
+	fmt.Println(" Cache missed data fetched from DB")
 	return products, nil
 }
 
