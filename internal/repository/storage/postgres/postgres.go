@@ -80,7 +80,7 @@ func (p *Postgres) GetProductById(id int) (modules.Product, error) {
 	if cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result(); err == nil {
 		var product modules.Product
 		if unmarshalErr := json.Unmarshal([]byte(cached), &product); unmarshalErr == nil {
-			fmt.Printf("Cache Memory Hit")
+			fmt.Println("Cache Memory Hit")
 			return product, nil
 		}
 	}
@@ -316,4 +316,5 @@ func InvalidateProductCache() {
 	for iter.Next(cache.Ctx) {
 		cache.Rdb.Del(cache.Ctx, iter.Val())
 	}
+	fmt.Println("Data Erased from cache memory")
 }
