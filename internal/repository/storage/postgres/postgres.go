@@ -185,6 +185,20 @@ func (p *Postgres) GetDefaultProducts() ([]modules.Product, error) {
 }
 
 func (p *Postgres) GetFilteredProducts(filters map[string][]string) ([]modules.Product, error) {
+
+	cacheKey := "products:filtered:"
+	for k, v := range filters {
+		cacheKey += fmt.Sprintf("%s=%s;", k, v)
+	}
+
+	if cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result(); err == nil {
+		var products []modules.Product
+		if unmarshalErr := json.Unmarshal([]byte(cached), &products); unmarshalErr == nil {
+			fmt.Println("Cache hit for filters:", cacheKey)
+			return products, nil
+		}
+	}
+
 	query := `SELECT id, name, price, stock, category_id, brand, images FROM products WHERE 1=1 `
 	args := []any{}
 	argID := 1
@@ -243,6 +257,12 @@ func (p *Postgres) GetFilteredProducts(filters map[string][]string) ([]modules.P
 		}
 
 		products = append(products, product)
+	}
+
+	if len(products) > 0 {
+		data, _ := json.Marshal(products)
+		cache.Rdb.Set(cache.Ctx, cacheKey, data, 7*24*time.Hour)
+		fmt.Println("Cache missed data stored for filters:", cacheKey)
 	}
 
 	return  products, nil
