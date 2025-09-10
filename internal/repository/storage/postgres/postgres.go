@@ -75,6 +75,16 @@ func (p *Postgres) CreateProduct(name string, price int, stock int, categoryId s
 }
 
 func (p *Postgres) GetProductById(id int) (modules.Product, error) {
+	cacheKey := fmt.Sprintf("product:%d",id)
+
+	if cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result(); err == nil {
+		var product modules.Product
+		if unmarshalErr := json.Unmarshal([]byte(cached), &product); unmarshalErr == nil {
+			fmt.Printf("Cache Memory Hit")
+			return product, nil
+		}
+	}
+
 	stmt, err := p.Db.Prepare("SELECT * FROM products WHERE id = $1")
 	if err != nil {
 		return modules.Product{}, err
@@ -90,6 +100,11 @@ func (p *Postgres) GetProductById(id int) (modules.Product, error) {
 		}
 		return modules.Product{}, fmt.Errorf("error fetching product: %v", err)
 	}
+
+	data, _ := json.Marshal(product)
+	cache.Rdb.Set(cache.Ctx, cacheKey, data, 7*24*time.Hour)
+
+	fmt.Println("Cache missed Fetching data from DB.")
 
 	return product, nil
 }
