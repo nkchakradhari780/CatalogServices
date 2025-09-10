@@ -10,5 +10,4 @@ type Storage interface {
 	GetFilteredProducts(filters map[string][]string) ([]modules.Product, error)
 	UpdateProductById(id int, name string, price int, stock int, categoryId string, brand string, images []string) (modules.Product, error)
 	DeleteProductById(id int) error
-	GetProductsWithRedisCache() ([]modules.Product, error)
 }

@@ -110,6 +110,16 @@ func (p *Postgres) GetProductById(id int) (modules.Product, error) {
 }
 
 func (p *Postgres) GetProducts() ([]modules.Product, error) {
+	cacheKey := "products_cache_key"
+
+	if val, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result(); err == nil {
+		var products []modules.Product
+		if jsonErr := json.Unmarshal([]byte(val), &products); jsonErr == nil {
+			fmt.Println("Redis cache hit")
+			return products, nil
+		}
+	}
+
 	stmt, err := p.Db.Prepare("SELECT * FROM products")
 	if err != nil {
 		return nil, err
@@ -134,6 +144,12 @@ func (p *Postgres) GetProducts() ([]modules.Product, error) {
 		}
 		products = append(products, product)
 	}
+
+		data, _ := json.Marshal(products)
+	cache.Rdb.Set(cache.Ctx, cacheKey, data, 7*24*time.Hour)
+
+	fmt.Println(" Cache missed data fetched from DB")
+
 	return products, nil
 }
 
@@ -305,30 +321,6 @@ func (p *Postgres) DeleteProductById(id int) error {
 
 	return nil
 
-}
-
-func (p *Postgres) GetProductsWithRedisCache() ([]modules.Product,error) {
-	cacheKey := "products_cache_key"
-
-	//1. Check Redis cache
-	if val, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result(); err == nil {
-		var products []modules.Product
-		if jsonErr := json.Unmarshal([]byte(val), &products); jsonErr == nil {
-			fmt.Println("Redis cache hit")
-			return products, nil
-		}
-	}
-
-	products, err := p.GetProducts()
-	if err != nil {
-		return nil, err
-	}
-
-	data, _ := json.Marshal(products)
-	cache.Rdb.Set(cache.Ctx, cacheKey, data, 7*24*time.Hour)
-
-	fmt.Println(" Cache missed data fetched from DB")
-	return products, nil
 }
 
 func InvalidateProductCache() {
