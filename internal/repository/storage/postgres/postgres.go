@@ -2,9 +2,12 @@ package postgres
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/lib/pq"
+	"github.com/nkchakradhari780/catalogServices/internal/cache"
 	"github.com/nkchakradhari780/catalogServices/internal/config"
 	"github.com/nkchakradhari780/catalogServices/internal/modules"
 )
@@ -65,6 +68,8 @@ func (p *Postgres) CreateProduct(name string, price int, stock int, categoryId s
 	if err != nil {
 		return 0, err
 	}
+
+	InvalidateProductCache()
 
 	return int(lastId), nil
 }
@@ -245,6 +250,39 @@ func (p *Postgres) DeleteProductById(id int) error {
 		return fmt.Errorf("error deleting product %w", err)
 	}
 
+	InvalidateProductCache()
+
 	return nil
 
+}
+
+func (p *Postgres) GetProductsWithRedisCache() ([]modules.Product,error) {
+	cacheKey := "products_cache_key"
+
+	//1. Check Redis cache
+	if val, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result(); err == nil {
+		var products []modules.Product
+		if jsonErr := json.Unmarshal([]byte(val), &products); jsonErr == nil {
+			fmt.Println("Redis cache hit")
+			return products, nil
+		}
+	}
+
+	products, err := p.GetProducts()
+	if err != nil {
+		return nil, err
+	}
+
+	data, _ := json.Marshal(products)
+	cache.Rdb.Set(cache.Ctx, cacheKey, data, 7*24*time.Hour)
+
+	fmt.Println(" Cache miss -data fetched from DB")
+	return products, nil
+}
+
+func InvalidateProductCache() {
+	iter := cache.Rdb.Scan(cache.Ctx, 0, "products_*", 0).Iterator()
+	for iter.Next(cache.Ctx) {
+		cache.Rdb.Del(cache.Ctx, iter.Val())
+	}
 }

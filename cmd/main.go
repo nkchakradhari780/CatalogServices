@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/nkchakradhari780/catalogServices/internal/api"
+	"github.com/nkchakradhari780/catalogServices/internal/cache"
 	"github.com/nkchakradhari780/catalogServices/internal/config"
 	"github.com/nkchakradhari780/catalogServices/internal/repository/storage/postgres"
 )
@@ -26,6 +27,7 @@ func main() {
 	}
 
 	slog.Info("Connected to Database") 
+	cache.InitRedis()
 
 	//Router Setup
 	router := http.NewServeMux() 

@@ -77,7 +77,7 @@ func GetProducts(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slog.Info("Fetching all products")
 
-		products, err := storage.GetProducts()
+		products, err := storage.GetProductsWithRedisCache()
 		if err != nil {
 			fmt.Println("Error fetching products:", err)
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
@@ -117,6 +117,7 @@ func GetFilteredProducts(storage storage.Storage) http.HandlerFunc {
 		response.WriteJson(w, http.StatusOK, products)
 	}
 }
+
 
 func UpdateProductById(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
