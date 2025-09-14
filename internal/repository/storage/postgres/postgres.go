@@ -16,7 +16,7 @@ type Postgres struct {
 	Db *sql.DB
 }
 
-func New(cfg *config.Config) (*Postgres, error)  {
+func New(cfg *config.Config) (*Postgres, error) {
 
 	dsn := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=%s",
 		cfg.Database.Host,
@@ -47,7 +47,7 @@ func New(cfg *config.Config) (*Postgres, error)  {
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, err 
+		return nil, err
 	}
 
 	return &Postgres{
@@ -62,7 +62,6 @@ func (p *Postgres) CreateProduct(name string, price int, stock int, categoryId s
 	}
 	defer stmt.Close()
 
-
 	var lastId int
 	err = stmt.QueryRow(name, price, stock, categoryId, Brand, pq.Array(Images)).Scan(&lastId)
 	if err != nil {
@@ -75,7 +74,7 @@ func (p *Postgres) CreateProduct(name string, price int, stock int, categoryId s
 }
 
 func (p *Postgres) GetProductById(id int) (modules.Product, error) {
-	cacheKey := fmt.Sprintf("product:%d",id)
+	cacheKey := fmt.Sprintf("product:%d", id)
 
 	if cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result(); err == nil {
 		var product modules.Product
@@ -135,7 +134,7 @@ func (p *Postgres) GetProducts() ([]modules.Product, error) {
 	defer rows.Close()
 
 	var products []modules.Product
-	
+
 	for rows.Next() {
 		var product modules.Product
 		err := rows.Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
@@ -145,7 +144,7 @@ func (p *Postgres) GetProducts() ([]modules.Product, error) {
 		products = append(products, product)
 	}
 
-		data, _ := json.Marshal(products)
+	data, _ := json.Marshal(products)
 	cache.Rdb.Set(cache.Ctx, cacheKey, data, 7*24*time.Hour)
 
 	fmt.Println(" Cache missed data fetched from DB")
@@ -156,7 +155,7 @@ func (p *Postgres) GetProducts() ([]modules.Product, error) {
 func (p *Postgres) GetDefaultProducts() ([]modules.Product, error) {
 	cacheKey := "default_products"
 
-	cached,err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
+	cached, err := cache.Rdb.Get(cache.Ctx, cacheKey).Result()
 	if err == nil {
 		var products []modules.Product
 		if unmarshalErr := json.Unmarshal([]byte(cached), &products); unmarshalErr == nil {
@@ -171,13 +170,13 @@ func (p *Postgres) GetDefaultProducts() ([]modules.Product, error) {
 					LIMIT 50;
 				`)
 	if err != nil {
-		return  nil, err
+		return nil, err
 	}
 	defer stms.Close()
 
 	rows, err := stms.Query()
 	if err != nil {
-		return  nil, err
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -192,10 +191,10 @@ func (p *Postgres) GetDefaultProducts() ([]modules.Product, error) {
 		}
 		products = append(products, product)
 	}
-	
+
 	data, _ := json.Marshal(products)
 	cache.Rdb.Set(cache.Ctx, cacheKey, data, 7*24*time.Hour)
-	
+
 	fmt.Println("Cache missed fetching data from DB.")
 	return products, nil
 }
@@ -259,7 +258,7 @@ func (p *Postgres) GetFilteredProducts(filters map[string][]string) ([]modules.P
 	query += "ORDER BY id DESC LIMIT 50"
 
 	rows, err := p.Db.Query(query, args...)
-	if err!= nil {
+	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
@@ -281,13 +280,35 @@ func (p *Postgres) GetFilteredProducts(filters map[string][]string) ([]modules.P
 		fmt.Println("Cache missed data stored for filters:", cacheKey)
 	}
 
-	return  products, nil
+	return products, nil
 }
 
-func (p *Postgres) UpdateProductById(id int, name string, price int, stock int, categoryId string, Brand string, Images []string)  (modules.Product, error) {
+func (p *Postgres) SearchProducts(qureyStr string) ([]modules.Product, error) {
+	sqlQurey := `SELECT id, name, price, stock, category_id, brand, images FROM products WHERE name ILIKE $1 OR brand ILIKE $1 ORDER BY id DESC LIMIT 50;`
+
+	rows, err := p.Db.Query(sqlQurey, "%"+qureyStr+"%")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []modules.Product
+	for rows.Next() {
+		var product modules.Product
+		if err := rows.Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images)); err != nil {
+			return nil, err
+		}
+		products = append(products, product)
+	}
+
+	return products, nil
+	
+}
+
+func (p *Postgres) UpdateProductById(id int, name string, price int, stock int, categoryId string, Brand string, Images []string) (modules.Product, error) {
 	stmt, err := p.Db.Prepare("UPDATE products SET name = $1, price = $2, stock = $3, category_id = $4, brand = $5, images = $6 WHERE id = $7 RETURNING *")
 	if err != nil {
-		return modules.Product{},err
+		return modules.Product{}, err
 	}
 	defer stmt.Close()
 
@@ -311,8 +332,8 @@ func (p *Postgres) DeleteProductById(id int) error {
 	}
 
 	defer stmt.Close()
-	 
-	_ , err = stmt.Exec(id)
+
+	_, err = stmt.Exec(id)
 	if err != nil {
 		return fmt.Errorf("error deleting product %w", err)
 	}

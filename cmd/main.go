@@ -39,6 +39,8 @@ func main() {
 	router.HandleFunc("GET /products/", api.GetProducts(storage))
 	router.HandleFunc("GET /products/default", api.GetDefaultProducts(storage))
 	router.HandleFunc("GET /products/filtered", api.GetFilteredProducts(storage))
+	router.HandleFunc("GET /products/search", api.SearcProducts(storage))
+
 
 	//Server Setup
 	server := http.Server{

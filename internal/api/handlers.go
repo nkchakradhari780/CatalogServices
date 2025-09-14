@@ -118,6 +118,26 @@ func GetFilteredProducts(storage storage.Storage) http.HandlerFunc {
 	}
 }
 
+func SearcProducts(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("Searching Product")
+		
+		qureyStr := r.URL.Query().Get("q")
+		if qureyStr == "" {
+			response.WriteJson(w, http.StatusBadRequest, map[string]string{"error": "query param 'q' is required"})
+			return
+		}
+
+		products, err := storage.SearchProducts(qureyStr) // or SearchProductsFTS
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+
+		response.WriteJson(w, http.StatusOK, products)
+	}
+}
+
 func UpdateProductById(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Updating Product")
