@@ -11,4 +11,6 @@ type Storage interface {
 	UpdateProductById(id int, name string, price int, stock int, categoryId string, quantity int, brand string, images []string) (modules.Product, error)
 	DeleteProductById(id int) error
 	SearchProducts(qureyStr string) ([]modules.Product, error)
+
+	CreateUser(name string, email string, password string, phone string, role string, address string) (int, error)
 }

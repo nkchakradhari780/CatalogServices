@@ -99,7 +99,7 @@ func New(cfg *config.Config) (*Postgres, error) {
 }
 
 func (p *Postgres) CreateProduct(name string, price int, stock int, categoryId string, quantity int, Brand string, Images []string) (int, error) {
-	stmt, err := p.Db.Prepare("INSERT INTO products (name, price, stock, category_id, quantity, brand, images) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id")
+	stmt, err := p.Db.Prepare("INSERT INTO products (name, price, stock, category_id, quantity, brand, images) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING product_id")
 	if err != nil {
 		return 0, err
 	}
@@ -393,4 +393,23 @@ func InvalidateProductCache() {
 		cache.Rdb.Del(cache.Ctx, iter.Val())
 	}
 	fmt.Println("Data Erased from cache memory")
+}
+
+func (p *Postgres) CreateUser(name string, email string, password string, phone string, role string, address string) (int, error) {
+	stmt, err := p.Db.Prepare("INSERT INTO users (name, email, password,phone, role, address) VALUES ($1, $2, $3, $4,$5, $6) RETURNING user_id")
+
+	if err != nil {
+		return 0, err
+	}
+
+	defer stmt.Close()
+
+	var userId int 
+	err = stmt.QueryRow(name,email,password,phone,role,address).Scan(&userId)
+
+	if err != nil {
+		return  0, err
+	}
+
+	return int(userId), nil
 }
