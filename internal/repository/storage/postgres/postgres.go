@@ -181,7 +181,7 @@ func (p *Postgres) GetProducts() ([]modules.Product, error) {
 
 	for rows.Next() {
 		var product modules.Product
-		err := rows.Scan(&product.ProductId, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+		err := rows.Scan(&product.ProductId, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Quantity, &product.Brand, pq.Array(&product.Images))
 		if err != nil {
 			return nil, err
 		}
@@ -208,7 +208,7 @@ func (p *Postgres) GetDefaultProducts() ([]modules.Product, error) {
 		}
 	}
 
-	stms, err := p.Db.Prepare(`SELECT id, name, price, stock, category_id, brand, images
+	stms, err := p.Db.Prepare(`SELECT product_id, name, price, stock, category_id, quantity, brand, images
 					FROM products
 					ORDER BY RANDOM()
 					LIMIT 50;
@@ -229,7 +229,7 @@ func (p *Postgres) GetDefaultProducts() ([]modules.Product, error) {
 
 	for rows.Next() {
 		var product modules.Product
-		err := rows.Scan(&product.ProductId, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+		err := rows.Scan(&product.ProductId, &product.Name, &product.Price, &product.Stock, &product.CategoryID,&product.Quantity ,&product.Brand, pq.Array(&product.Images))
 		if err != nil {
 			return nil, err
 		}
@@ -258,7 +258,7 @@ func (p *Postgres) GetFilteredProducts(filters map[string][]string) ([]modules.P
 		}
 	}
 
-	query := `SELECT id, name, price, stock, category_id, brand, images FROM products WHERE 1=1 `
+	query := `SELECT product_id, name, price, stock, category_id, brand, images FROM products WHERE 1=1 `
 	args := []any{}
 	argID := 1
 
@@ -299,7 +299,7 @@ func (p *Postgres) GetFilteredProducts(filters map[string][]string) ([]modules.P
 		argID++
 	}
 
-	query += "ORDER BY id DESC LIMIT 50"
+	query += "ORDER BY product_id DESC LIMIT 50"
 
 	rows, err := p.Db.Query(query, args...)
 	if err != nil {
@@ -328,7 +328,7 @@ func (p *Postgres) GetFilteredProducts(filters map[string][]string) ([]modules.P
 }
 
 func (p *Postgres) SearchProducts(qureyStr string) ([]modules.Product, error) {
-	sqlQurey := `SELECT id, name, price, stock, category_id, brand, images FROM products WHERE name ILIKE $1 OR brand ILIKE $1 ORDER BY id DESC LIMIT 50;`
+	sqlQurey := `SELECT product_id, name, price, stock, category_id, brand, images FROM products WHERE name ILIKE $1 OR brand ILIKE $1 ORDER BY product_id DESC LIMIT 50;`
 
 	rows, err := p.Db.Query(sqlQurey, "%"+qureyStr+"%")
 	if err != nil {
@@ -389,10 +389,12 @@ func (p *Postgres) DeleteProductById(id int) error {
 }
 
 func InvalidateProductCache() {
-	iter := cache.Rdb.Scan(cache.Ctx, 0, "products_*", 0).Iterator()
-	for iter.Next(cache.Ctx) {
-		cache.Rdb.Del(cache.Ctx, iter.Val())
+	err := cache.Rdb.FlushDB(cache.Ctx).Err()
+	if err != nil {
+		fmt.Println("Error Clearing Cache: ", err)
+		return
 	}
+
 	fmt.Println("Data Erased from cache memory")
 }
 
