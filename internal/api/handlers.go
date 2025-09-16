@@ -38,7 +38,7 @@ func CreateNewProduct(storage storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		lastId, err := storage.CreateProduct(product.Name, product.Price, product.Stock, product.CategoryID, product.Brand, product.Images)
+		lastId, err := storage.CreateProduct(product.Name, product.Price, product.Stock, product.CategoryID, product.Quantity, product.Brand, product.Images)
 		if err != nil {
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
@@ -169,7 +169,7 @@ func UpdateProductById(storage storage.Storage) http.HandlerFunc {
 			return 
 		}
 
-		updatedProduct, err := storage.UpdateProductById(id, product.Name, product.Price, product.Stock, product.CategoryID, product.Brand, product.Images)
+		updatedProduct, err := storage.UpdateProductById(id, product.Name, product.Price, product.Stock, product.CategoryID, product.Quantity, product.Brand, product.Images)
 		if err != nil {
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError((err)))
 			return 

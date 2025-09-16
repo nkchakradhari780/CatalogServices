@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/lib/pq"
@@ -38,13 +39,17 @@ func New(cfg *config.Config) (*Postgres, error) {
 	price       INT NOT NULL,                   -- product price
 	stock       INT NOT NULL,                   -- product stock count
 	category_id INT NOT NULL,                  -- category reference
+	quantity	INT NOT NULL, 					-- product quantity
 	brand       VARCHAR(100) NOT NULL,          -- product brand
 	images      TEXT[]                          -- array of image URLs
 		);
 	`)
+
 	if err != nil {
 		return nil, err
 	}
+
+	slog.Info("Table Created")
 
 	if err := db.Ping(); err != nil {
 		return nil, err
@@ -55,15 +60,15 @@ func New(cfg *config.Config) (*Postgres, error) {
 	}, nil
 }
 
-func (p *Postgres) CreateProduct(name string, price int, stock int, categoryId string, Brand string, Images []string) (int, error) {
-	stmt, err := p.Db.Prepare("INSERT INTO products (name, price, stock, category_id, brand, images) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id")
+func (p *Postgres) CreateProduct(name string, price int, stock int, categoryId string, quantity int, Brand string, Images []string) (int, error) {
+	stmt, err := p.Db.Prepare("INSERT INTO products (name, price, stock, category_id, quantity, brand, images) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id")
 	if err != nil {
 		return 0, err
 	}
 	defer stmt.Close()
 
 	var lastId int
-	err = stmt.QueryRow(name, price, stock, categoryId, Brand, pq.Array(Images)).Scan(&lastId)
+	err = stmt.QueryRow(name, price, stock, categoryId, quantity, Brand, pq.Array(Images)).Scan(&lastId)
 	if err != nil {
 		return 0, err
 	}
@@ -305,15 +310,15 @@ func (p *Postgres) SearchProducts(qureyStr string) ([]modules.Product, error) {
 	
 }
 
-func (p *Postgres) UpdateProductById(id int, name string, price int, stock int, categoryId string, Brand string, Images []string) (modules.Product, error) {
-	stmt, err := p.Db.Prepare("UPDATE products SET name = $1, price = $2, stock = $3, category_id = $4, brand = $5, images = $6 WHERE id = $7 RETURNING *")
+func (p *Postgres) UpdateProductById(id int, name string, price int, stock int, categoryId string, quantity int, Brand string, Images []string) (modules.Product, error) {
+	stmt, err := p.Db.Prepare("UPDATE products SET name = $1, price = $2, stock = $3, category_id = $4, quantity=$5, brand = $6, images = $7 WHERE id = $8 RETURNING *")
 	if err != nil {
 		return modules.Product{}, err
 	}
 	defer stmt.Close()
 
 	var product modules.Product
-	err = stmt.QueryRow(name, price, stock, categoryId, Brand, pq.Array(Images), id).Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+	err = stmt.QueryRow(name, price, stock, categoryId,quantity, Brand, pq.Array(Images), id).Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Quantity, &product.Brand, pq.Array(&product.Images))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return modules.Product{}, fmt.Errorf("product with id %d not found", id)
