@@ -199,6 +199,5 @@ Response:
 
 ## 📝 License
 
-This project is licensed under the MIT License.
-
+MIT License Developed by Nitin Chakradhari / Infosoft Solutions
 ---
