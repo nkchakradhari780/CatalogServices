@@ -79,7 +79,8 @@ func New(cfg *config.Config) (*Postgres, error) {
 			wish_list_id SERIAL PRIMARY KEY, 		
 			product_id   INT NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
 			user_id      INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-			added_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			added_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			CONSTRAINT unique_user_product UNIQUE (user_id, product_id)
 		)`,
 	}
 
@@ -135,7 +136,7 @@ func (p *Postgres) GetProductById(id int) (modules.Product, error) {
 
 	var product modules.Product
 
-	err = stmt.QueryRow(id).Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+	err = stmt.QueryRow(id).Scan(&product.ProductId, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return modules.Product{}, fmt.Errorf("product with id %d not found", id)
@@ -180,7 +181,7 @@ func (p *Postgres) GetProducts() ([]modules.Product, error) {
 
 	for rows.Next() {
 		var product modules.Product
-		err := rows.Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+		err := rows.Scan(&product.ProductId, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +229,7 @@ func (p *Postgres) GetDefaultProducts() ([]modules.Product, error) {
 
 	for rows.Next() {
 		var product modules.Product
-		err := rows.Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+		err := rows.Scan(&product.ProductId, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
 		if err != nil {
 			return nil, err
 		}
@@ -309,7 +310,7 @@ func (p *Postgres) GetFilteredProducts(filters map[string][]string) ([]modules.P
 	var products []modules.Product
 	for rows.Next() {
 		var product modules.Product
-		err := rows.Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
+		err := rows.Scan(&product.ProductId, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images))
 		if err != nil {
 			return nil, err
 		}
@@ -338,7 +339,7 @@ func (p *Postgres) SearchProducts(qureyStr string) ([]modules.Product, error) {
 	var products []modules.Product
 	for rows.Next() {
 		var product modules.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images)); err != nil {
+		if err := rows.Scan(&product.ProductId, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Brand, pq.Array(&product.Images)); err != nil {
 			return nil, err
 		}
 		products = append(products, product)
@@ -356,7 +357,7 @@ func (p *Postgres) UpdateProductById(id int, name string, price int, stock int, 
 	defer stmt.Close()
 
 	var product modules.Product
-	err = stmt.QueryRow(name, price, stock, categoryId, quantity, Brand, pq.Array(Images), id).Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Quantity, &product.Brand, pq.Array(&product.Images))
+	err = stmt.QueryRow(name, price, stock, categoryId, quantity, Brand, pq.Array(Images), id).Scan(&product.ProductId, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Quantity, &product.Brand, pq.Array(&product.Images))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return modules.Product{}, fmt.Errorf("product with id %d not found", id)
@@ -412,4 +413,26 @@ func (p *Postgres) CreateUser(name string, email string, password string, phone 
 	}
 
 	return int(userId), nil
+}
+
+func (p *Postgres) AddToWishList(user_id int, product_id int) (int, error) {
+	stmt, err := p.Db.Prepare("INSERT INTO wishList (product_id, user_id) VALUES ($1, $2) ON CONFLICT (user_id, product_id) DO NOTHING RETURNING wish_list_id")
+	if err != nil {
+		return 0, err
+	}
+	defer stmt.Close()
+
+	var wishListId int
+
+	err = stmt.QueryRow(product_id, user_id).Scan(&wishListId)
+
+	if err == sql.ErrNoRows {
+		return 0, fmt.Errorf("product already added to wish list")
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	return int(wishListId), nil
 }

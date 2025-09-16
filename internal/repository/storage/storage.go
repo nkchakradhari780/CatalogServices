@@ -13,4 +13,6 @@ type Storage interface {
 	SearchProducts(qureyStr string) ([]modules.Product, error)
 
 	CreateUser(name string, email string, password string, phone string, role string, address string) (int, error)
+
+	AddToWishList(user_id int, product_id int) (int, error)
 }
