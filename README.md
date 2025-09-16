@@ -1,10 +1,13 @@
+Got it 🚀 — I’ll properly format your **Catalog Services README** in clean **Markdown** style so it looks neat and professional.
+
+Here’s the formatted version:
 
 ---
 
 # 📦 Catalog Services
 
-Catalog Services is a backend service built with **Go**, **PostgreSQL**, and **Redis** that provides a product catalog system with caching support.
-It follows a clean architecture pattern with clear separation between API handlers, repository (DB), cache, and domain models.
+**Catalog Services** is a backend service built with **Go**, **PostgreSQL**, and **Redis** that provides a product catalog system with caching support.
+It follows a **clean architecture pattern** with clear separation between API handlers, repository (DB), cache, and domain models.
 
 ---
 
@@ -35,7 +38,9 @@ CATALOGSERVICES/
 │
 ├── internal/
 │   ├── api/                     # HTTP handlers
-│   │   └── handlers.go
+│   │   ├── handlers.go
+│   │   ├── users.go
+│   │   └── wishlist.go
 │   │
 │   ├── cache/                   # Redis client + cache logic
 │   │   └── cache.go
@@ -46,6 +51,7 @@ CATALOGSERVICES/
 │   ├── modules/                 # Domain models (structs)
 │   │   ├── cart.go              # (Not implemented yet)
 │   │   ├── product.go
+│   │   ├── user.go
 │   │   └── wishList.go          # (Not implemented yet)
 │   │
 │   ├── repository/              # Data access layer
@@ -54,7 +60,8 @@ CATALOGSERVICES/
 │   │       └── storage.go
 │   │
 │   └── utils/                   # Helpers (response, etc.)
-│
+│       └── storage/
+│           └── response.go
 ├── tmp/                         # Binary output dir
 │   └── main.exe
 │
@@ -79,16 +86,18 @@ CATALOGSERVICES/
 
 ### Product APIs
 
-| Method   | Endpoint                  | Description                                       |
-| -------- | ------------------------- | ------------------------------------------------- |
-| `POST`   | `/admin/products`         | Create a new product                              |
-| `PUT`    | `/admin/products/{id}`    | Update product by ID                              |
-| `DELETE` | `/admin/products/{id}`    | Delete product by ID                              |
-| `GET`    | `/products/{id}`          | Get product by ID (with Redis cache)              |
-| `GET`    | `/products/`              | Get all products                                  |
-| `GET`    | `/products/default`       | Get 50 random products (with Redis cache)         |
-| `GET`    | `/products/filtered`      | Get filtered products (brand, price, stock, etc.) |
-| `GET`    | `/products/search?q=text` | Search products by name                           |
+| Method   | Endpoint                           | Description                                       |
+| -------- | ---------------------------------- | ------------------------------------------------- |
+| `POST`   | `/admin/products`                  | Create a new product                              |
+| `PUT`    | `/admin/products/{id}`             | Update product by ID                              |
+| `DELETE` | `/admin/products/{id}`             | Delete product by ID                              |
+| `GET`    | `/products/{id}`                   | Get product by ID (with Redis cache)              |
+| `GET`    | `/products/`                       | Get all products                                  |
+| `GET`    | `/products/default`                | Get 50 random products (with Redis cache)         |
+| `GET`    | `/products/filtered`               | Get filtered products (brand, price, stock, etc.) |
+| `GET`    | `/products/search?q=text`          | Search products by name                           |
+| `POST`   | `/user`                            | Create a new user                                 |
+| `POST`   | `/wishlist/{user_id}/{product_id}` | Add product to wishlist                           |
 
 ---
 
@@ -180,7 +189,7 @@ Content-Type: application/json
 GET http://localhost:8081/products/search?q=iphone
 ```
 
-Response:
+#### Example Response:
 
 ```json
 [
@@ -195,9 +204,12 @@ Response:
   }
 ]
 ```
+
 ---
 
 ## 📝 License
 
-MIT License Developed by Nitin Chakradhari / Infosoft Solutions
+**MIT License**
+Developed by *Nitin Chakradhari / Infosoft Solutions*
+
 ---
