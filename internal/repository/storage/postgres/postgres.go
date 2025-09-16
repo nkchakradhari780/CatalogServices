@@ -16,10 +16,9 @@ import (
 type Postgres struct {
 	Db *sql.DB
 }
-
 func New(cfg *config.Config) (*Postgres, error) {
-
-	dsn := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=%s",
+	dsn := fmt.Sprintf(
+		"host=%s port=%d dbname=%s user=%s password=%s sslmode=%s",
 		cfg.Database.Host,
 		cfg.Database.Port,
 		cfg.Database.Name,
@@ -33,31 +32,70 @@ func New(cfg *config.Config) (*Postgres, error) {
 		return nil, err
 	}
 
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS products (
-	id          SERIAL PRIMARY KEY,               -- unique product id
-	name        VARCHAR(255) NOT NULL,          -- product name
-	price       INT NOT NULL,                   -- product price
-	stock       INT NOT NULL,                   -- product stock count
-	category_id INT NOT NULL,                  -- category reference
-	quantity	INT NOT NULL, 					-- product quantity
-	brand       VARCHAR(100) NOT NULL,          -- product brand
-	images      TEXT[]                          -- array of image URLs
-		);
-	`)
+	tables := []string{
+		`CREATE TABLE IF NOT EXISTS users (
+			user_id     SERIAL PRIMARY KEY,            
+			name        TEXT NOT NULL,
+			email       TEXT UNIQUE NOT NULL, 
+			password    TEXT NOT NULL,
+			phone       TEXT,
+			role        TEXT CHECK (role IN ('admin', 'user')) DEFAULT 'user',
+			address     TEXT,	
+			created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
 
-	if err != nil {
-		return nil, err
+		`CREATE TABLE IF NOT EXISTS products (
+			product_id   SERIAL PRIMARY KEY,           
+			name         VARCHAR(255) NOT NULL,        
+			price        INT NOT NULL,                 
+			stock        INT NOT NULL,                 
+			category_id  INT NOT NULL,                 
+			quantity     INT NOT NULL, 				
+			brand        VARCHAR(100) NOT NULL,        
+			images       TEXT[]
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS cartTable (
+			cart_id     SERIAL PRIMARY KEY,			
+			user_id     INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+			created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,			
+			updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,			
+			status      TEXT CHECK (status IN ('active', 'ordered', 'abandoned')) DEFAULT 'active'
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS cartItems (
+			cart_item_id  SERIAL PRIMARY KEY, 		
+			cart_id       INT NOT NULL REFERENCES cartTable(cart_id) ON DELETE CASCADE,
+			product_id    INT NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+			quantity      INT NOT NULL,
+			price_at_time FLOAT NOT NULL,
+			discount      FLOAT DEFAULT NULL,
+			subtotal      FLOAT NOT NULL,
+			added_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS wishList (
+			wish_list_id SERIAL PRIMARY KEY, 		
+			product_id   INT NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+			user_id      INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+			added_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
-	slog.Info("Table Created")
+	for _, query := range tables {
+		if _, err := db.Exec(query); err != nil {
+			return nil, fmt.Errorf("failed to create table: %w", err)
+		}
+	}
+
+	slog.Info("✅ Tables created successfully")
 
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
 
-	return &Postgres{
-		Db: db,
-	}, nil
+	return &Postgres{Db: db}, nil
 }
 
 func (p *Postgres) CreateProduct(name string, price int, stock int, categoryId string, quantity int, Brand string, Images []string) (int, error) {
@@ -307,7 +345,7 @@ func (p *Postgres) SearchProducts(qureyStr string) ([]modules.Product, error) {
 	}
 
 	return products, nil
-	
+
 }
 
 func (p *Postgres) UpdateProductById(id int, name string, price int, stock int, categoryId string, quantity int, Brand string, Images []string) (modules.Product, error) {
@@ -318,7 +356,7 @@ func (p *Postgres) UpdateProductById(id int, name string, price int, stock int, 
 	defer stmt.Close()
 
 	var product modules.Product
-	err = stmt.QueryRow(name, price, stock, categoryId,quantity, Brand, pq.Array(Images), id).Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Quantity, &product.Brand, pq.Array(&product.Images))
+	err = stmt.QueryRow(name, price, stock, categoryId, quantity, Brand, pq.Array(Images), id).Scan(&product.ID, &product.Name, &product.Price, &product.Stock, &product.CategoryID, &product.Quantity, &product.Brand, pq.Array(&product.Images))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return modules.Product{}, fmt.Errorf("product with id %d not found", id)
