@@ -15,4 +15,7 @@ type Storage interface {
 	CreateUser(name string, email string, password string, phone string, role string, address string) (int, error)
 
 	AddToWishList(user_id int, product_id int) (int, error)
+
+	AddToCart(user_id int, product_id int, quantity int, discount int) (int, error)
 }
+

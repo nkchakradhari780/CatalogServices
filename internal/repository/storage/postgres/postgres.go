@@ -438,3 +438,71 @@ func (p *Postgres) AddToWishList(user_id int, product_id int) (int, error) {
 
 	return int(wishListId), nil
 }
+func (p *Postgres) AddToCart(user_id int, product_id int, quantity int, discount int) (int, error) {
+	// Step 1: Check if user has an active cart
+	var cartID int
+	err := p.Db.QueryRow(`
+		SELECT cart_id FROM cartTable WHERE user_id = $1 AND status = 'active' LIMIT 1
+	`, user_id).Scan(&cartID)
+
+	if err == sql.ErrNoRows {
+		// No active cart → create one
+		err = p.Db.QueryRow(`
+			INSERT INTO cartTable (user_id, status) VALUES ($1, 'active') RETURNING cart_id
+		`, user_id).Scan(&cartID)
+		if err != nil {
+			return 0, fmt.Errorf("failed to create cart: %w", err)
+		}
+	} else if err != nil {
+		return 0, fmt.Errorf("failed to fetch cart: %w", err)
+	}
+
+	// Step 2: Get product price
+	var price float64
+	err = p.Db.QueryRow(`
+		SELECT price FROM products WHERE product_id = $1
+	`, product_id).Scan(&price)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch product price: %w", err)
+	}
+
+	// Step 3: Calculate subtotal
+	subtotal := (price * float64(quantity)) - float64(discount)
+	if subtotal < 0 {
+		subtotal = 0 // safeguard
+	}
+
+	// Step 4: Check if product already exists in cart
+	var cartItemID int
+	err = p.Db.QueryRow(`
+		SELECT cart_item_id FROM cartItems WHERE cart_id = $1 AND product_id = $2
+	`, cartID, product_id).Scan(&cartItemID)
+
+	if err == sql.ErrNoRows {
+		// Insert new item
+		err = p.Db.QueryRow(`
+			INSERT INTO cartItems (cart_id, product_id, quantity, price_at_time, discount, subtotal)
+			VALUES ($1, $2, $3, $4, $5, $6)
+			RETURNING cart_item_id
+		`, cartID, product_id, quantity, price, discount, subtotal).Scan(&cartItemID)
+		if err != nil {
+			return 0, fmt.Errorf("failed to add item: %w", err)
+		}
+	} else if err == nil {
+		// Update quantity, discount, and subtotal
+		_, err = p.Db.Exec(`
+			UPDATE cartItems
+			SET quantity = quantity + $1,
+			    discount = $2,
+			    subtotal = subtotal + $3
+			WHERE cart_item_id = $4
+		`, quantity, discount, subtotal, cartItemID)
+		if err != nil {
+			return 0, fmt.Errorf("failed to update cart item: %w", err)
+		}
+	} else {
+		return 0, fmt.Errorf("failed to check cart item: %w", err)
+	}
+
+	return cartItemID, nil
+}
