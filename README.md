@@ -98,6 +98,7 @@ CATALOGSERVICES/
 | `GET`    | `/products/search?q=text`          | Search products by name                           |
 | `POST`   | `/user`                            | Create a new user                                 |
 | `POST`   | `/wishlist/{user_id}/{product_id}` | Add product to wishlist                           |
+| `POST`   | `/cart/{user_id}/{product_id}`     | Add product to Cart                               |
 
 ---
 

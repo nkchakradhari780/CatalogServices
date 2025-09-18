@@ -9,6 +9,7 @@ import (
 	"github.com/nkchakradhari780/catalogServices/internal/repository/storage"
 	"github.com/nkchakradhari780/catalogServices/internal/utils/response"
 )
+
 func AddToCart(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userIDStr := r.PathValue("user_id")
@@ -26,10 +27,9 @@ func AddToCart(storage storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		// Read quantity and discount from body
 		var body struct {
 			Quantity int `json:"quantity"`
-			Discount int `json:"discount"` // optional
+			Discount int `json:"discount"` 
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Quantity <= 0 {
 			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("invalid input")))
