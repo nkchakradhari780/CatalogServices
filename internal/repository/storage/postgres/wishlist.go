@@ -26,3 +26,31 @@ func (p *Postgres) AddToWishList(user_id int, product_id int) (int, error) {
 
 	return int(wishListId), nil
 }
+
+func (p *Postgres) RemoveFromWishList(user_id int, product_id int) error {
+
+	var wishListId int
+
+	err := p.Db.QueryRow(`SELECT wish_list_id FROM wishList WHERE user_id = $1 AND product_id = $2`, user_id, product_id).Scan(&wishListId)
+
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("item not found on wishlist")
+	} else if err != nil {
+		return fmt.Errorf("error fetching item from wishlist: %w", err)
+	}
+
+	stmt, err := p.Db.Prepare(`DELETE FROM wishList WHERE user_id = $1 AND product_id = $2`)
+
+	if err != nil {
+		return fmt.Errorf("error removing product from wishlist")
+	}
+
+	_, err = stmt.Exec(user_id, product_id)
+
+	if err != nil {
+		return fmt.Errorf("error removing product from wishlist")
+	}
+
+	return nil
+
+}

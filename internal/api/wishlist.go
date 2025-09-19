@@ -47,3 +47,32 @@ func AddToWishList(storage storage.Storage) http.HandlerFunc {
 
 	}
 }
+
+func RemoveFromWishList(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		
+		userIDStr := r.PathValue("user_id")
+		productIDStr := r.PathValue("product_id")
+
+		userId, err := strconv.Atoi(userIDStr)
+		
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("invalid user id")))
+			return 
+		}
+		
+		productId, err := strconv.Atoi(productIDStr)
+		
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("invalid product id")))
+			return 
+		}
+
+		if err = storage.RemoveFromWishList(userId, productId); err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return 
+		}
+
+		response.WriteJson(w, http.StatusOK, map[string]string{"message": "item removed from wishlist", "result": "success"})
+	}
+}
