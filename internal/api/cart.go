@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -74,5 +75,36 @@ func RemoveFromCart(storage storage.Storage) http.HandlerFunc {
 		}
 
 		response.WriteJson(w, http.StatusOK, map[string]string{"message": "item removed from successfully!", "result": "success"})
+	}
+}
+
+func FetchCartItems(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("Fetching all cart Items")
+
+		userIdstr := r.PathValue("user_id")
+		
+		userId, err := strconv.Atoi(userIdstr)
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			return 
+		}
+		
+		cartItems, products, err := storage.FetchCartItems(userId)
+		
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			return 
+		}
+		
+		payload := map[string]interface{}{
+			"message": "cart Items fetched successfully!",
+			"result": "success", 
+			"cartItems": cartItems,
+			"products": products,
+		}
+		
+		response.WriteJson(w, http.StatusOK, payload)
+
 	}
 }

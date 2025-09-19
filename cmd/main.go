@@ -49,6 +49,7 @@ func main() {
 
 	router.HandleFunc("POST /cart/{user_id}/{product_id}", api.AddToCart(storage))
 	router.HandleFunc("DELETE /cart/{user_id}/{product_id}", api.RemoveFromCart(storage))
+	router.HandleFunc("GET /cart/{user_id}", api.FetchCartItems(storage))
 	//Server Setup
 	server := http.Server{
 		Addr:    cfg.HTTPServer.Addr,

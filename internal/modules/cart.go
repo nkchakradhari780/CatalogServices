@@ -1,16 +1,19 @@
 package modules
 
+import "time"
+
 type Cart struct {
-	CartId      int `json:"cart_id,omitempty"`
+	CartId     int `json:"cart_id,omitempty"`
 	CartItemID int `json:"cartItemId" validate:"required"`
 }
 
 type CartItem struct {
-	CartItemId         int      `json:"cart_item_id,omitempty" `
-	Name       string   `json:"name" validate:"required"`
-	Price      int      `json:"price" validate:"required"`
-	Stock      int      `json:"stock" validate:"required"`
-	CategoryID string   `json:"category_id" validate:"required"`
-	Brand      string   `json:"brand" validate:"required"`
-	Images     []string `json:"images,omitempty"`
+	CartItemId  int       `json:"cart_item_id,omitempty" `
+	CartId      int       `json:"cart_id" validate:"required"`
+	ProductId   int       `json:"product_id" validate:"required"`
+	Quantity    int       `json:"quantity" validate:"required"`
+	PriceAtTime float64   `json:"price_at_time" validate:"required"`
+	Discount    float64   `json:"discount" validate:"required"`
+	Subtotal    float64   `json:"subtotal"`
+	AddedAt     time.Time `json:"added_at"`
 }

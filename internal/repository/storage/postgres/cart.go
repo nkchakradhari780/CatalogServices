@@ -3,10 +3,15 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/lib/pq"
+	"github.com/nkchakradhari780/catalogServices/internal/modules"
 )
 
 func (p *Postgres) AddToCart(user_id int, product_id int, quantity int, discount int) (int, error) {
+
 	var cartID int
+
 	err := p.Db.QueryRow(`
 		SELECT cart_id FROM cartTable WHERE user_id = $1 AND status = 'active' LIMIT 1
 	`, user_id).Scan(&cartID)
@@ -24,9 +29,11 @@ func (p *Postgres) AddToCart(user_id int, product_id int, quantity int, discount
 
 	var price float64
 	var stock int
+
 	err = p.Db.QueryRow(`
 		SELECT price, stock FROM products WHERE product_id = $1
 	`, product_id).Scan(&price, &stock)
+
 	if err != nil {
 		return 0, fmt.Errorf("failed to fetch product details: %w", err)
 	}
@@ -46,6 +53,7 @@ func (p *Postgres) AddToCart(user_id int, product_id int, quantity int, discount
 	}
 
 	subtotal := (price * float64(quantity)) - float64(discount)
+
 	if subtotal < 0 {
 		subtotal = 0
 	}
@@ -97,6 +105,8 @@ func (p *Postgres) RemoveFromCart(user_id int, product_id int) error {
 		return fmt.Errorf("error removing from the cart")
 	}
 
+	defer stmt.Close()
+
 	_, err = stmt.Exec(cartId, product_id)
 
 	if err != nil {
@@ -106,3 +116,48 @@ func (p *Postgres) RemoveFromCart(user_id int, product_id int) error {
 	return nil
 
 }
+
+func (p *Postgres) FetchCartItems(user_id int) ([]modules.CartItem, []modules.Product, error) {
+	
+	rows, err := p.Db.Query(`SELECT ci.cart_item_id, ci.cart_id, ci.product_id, ci.quantity, ci.price_at_time, ci.discount, ci.subtotal, ci.added_at,
+					p.product_id, p.name, p.price, p.stock, p.category_id, p.quantity, p.brand, p.images
+					FROM cartItems ci
+					JOIN cartTable ct ON ci.cart_id = ct.cart_id
+					JOIN products p ON ci.product_id = p.product_id
+					WHERE ct.user_id = $1 AND ct.status = 'active'
+	`, user_id)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("error fetching cart items: %w", err)
+	}
+	defer rows.Close()
+
+	var cartItems []modules.CartItem
+	var products []modules.Product
+
+	for rows.Next() {
+		var ci modules.CartItem
+		var pr modules.Product
+
+		err := rows.Scan(&ci.CartItemId, &ci.CartId, &ci.ProductId, &ci.Quantity, &ci.PriceAtTime, &ci.Discount, &ci.Subtotal, &ci.AddedAt,
+		&pr.ProductId, &pr.Name, &pr.Price, &pr.Stock, &pr.CategoryID, &pr.Quantity, &pr.Brand, pq.Array(&pr.Images),
+		)
+
+		if err != nil {
+			return nil, nil, fmt.Errorf("error scanning row: %w", err)
+		}
+
+		cartItems = append(cartItems, ci)
+		products = append(products, pr)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	fmt.Printf("Cart Items: %+v\n", cartItems)
+    fmt.Printf("Products: %+v\n", products)
+
+	return cartItems, products, nil 
+
+} 

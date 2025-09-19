@@ -19,5 +19,6 @@ type Storage interface {
 
 	AddToCart(user_id int, product_id int, quantity int, discount int) (int, error)
 	RemoveFromCart(user_id int, product_id int) error 
+	FetchCartItems(user_id int) ([]modules.CartItem, []modules.Product, error)
 }
 
