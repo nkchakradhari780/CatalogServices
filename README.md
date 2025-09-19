@@ -19,6 +19,8 @@ It follows a **clean architecture pattern** with clear separation between API ha
 * ✅ Default product listing (random 50 products)
 * ✅ Redis caching with TTL (1 week) for frequently accessed data
 * ✅ PostgreSQL as persistent storage
+* ✅ Wish List Features
+* ✅ Cart Features
 * ⚡ Graceful server shutdown with `context`
 
 > 🛠️ **Work in Progress:** Cart and Wishlist modules are defined but not yet implemented.
@@ -38,6 +40,7 @@ CATALOGSERVICES/
 │
 ├── internal/
 │   ├── api/                     # HTTP handlers
+│   │   ├── cart.go
 │   │   ├── handlers.go
 │   │   ├── users.go
 │   │   └── wishlist.go
@@ -55,12 +58,18 @@ CATALOGSERVICES/
 │   │   └── wishList.go          # (Not implemented yet)
 │   │
 │   ├── repository/              # Data access layer
-│   │   └── storage/
-│   │       ├── postgres.go
-│   │       └── storage.go
+│   │   ├── storage/
+│   │   │   └── postgres/
+│   │   │       ├── cart.go
+│   │   │       ├── postgres.go
+│   │   │       ├── products.go
+│   │   │       ├── user.go
+│   │   │       └── wishlist.go
+│   │   │
+│   │   └── storage.go
 │   │
 │   └── utils/                   # Helpers (response, etc.)
-│       └── storage/
+│       └── response/
 │           └── response.go
 ├── tmp/                         # Binary output dir
 │   └── main.exe
