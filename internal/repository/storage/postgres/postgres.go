@@ -439,6 +439,7 @@ func (p *Postgres) AddToWishList(user_id int, product_id int) (int, error) {
 
 	return int(wishListId), nil
 }
+
 func (p *Postgres) AddToCart(user_id int, product_id int, quantity int, discount int) (int, error) {
 	var cartID int
 	err := p.Db.QueryRow(`
@@ -510,4 +511,33 @@ func (p *Postgres) AddToCart(user_id int, product_id int, quantity int, discount
 	}
 
 	return cartItemID, nil
+}
+
+func (p *Postgres) RemoveFromCart(user_id int, product_id int) error {
+
+	var cartId int
+
+	err := p.Db.QueryRow(`SELECT cart_id FROM cartTable WHERE user_id = $1`, user_id).Scan(&cartId)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("no cart found for the user")
+		}
+		return fmt.Errorf("error removing from the cart")
+	}
+
+	stmt, err := p.Db.Prepare(`DELETE FROM cartItems WHERE cart_id = $1 AND product_id = $2`)
+
+	if err != nil {
+		return fmt.Errorf("error removing from the cart")
+	}
+
+	_, err = stmt.Exec(cartId, product_id)
+	 
+	if err != nil {
+		return fmt.Errorf("error removing from the cart")
+	}
+
+	return  nil
+
 }
