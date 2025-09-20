@@ -155,9 +155,6 @@ func (p *Postgres) FetchCartItems(user_id int) ([]modules.CartItem, []modules.Pr
 		return nil, nil, fmt.Errorf("row iteration error: %w", err)
 	}
 
-	fmt.Printf("Cart Items: %+v\n", cartItems)
-    fmt.Printf("Products: %+v\n", products)
-
 	return cartItems, products, nil 
 
 } 

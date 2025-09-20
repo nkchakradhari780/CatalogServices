@@ -34,9 +34,9 @@ func AddToWishList(storage storage.Storage) http.HandlerFunc {
 		wishListId, err := storage.AddToWishList(user_id, product_id)
 
 		if err != nil {
-			if err.Error() == "product already added to wish list"{
+			if err.Error() == "product already added to wish list" {
 				response.WriteJson(w, http.StatusInternalServerError, map[string]string{"message": "product already added to wish list"})
-				return 
+				return
 			}
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
@@ -50,29 +50,59 @@ func AddToWishList(storage storage.Storage) http.HandlerFunc {
 
 func RemoveFromWishList(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		
+
 		userIDStr := r.PathValue("user_id")
 		productIDStr := r.PathValue("product_id")
 
 		userId, err := strconv.Atoi(userIDStr)
-		
+
 		if err != nil {
 			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("invalid user id")))
-			return 
+			return
 		}
-		
+
 		productId, err := strconv.Atoi(productIDStr)
-		
+
 		if err != nil {
 			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("invalid product id")))
-			return 
+			return
 		}
 
 		if err = storage.RemoveFromWishList(userId, productId); err != nil {
 			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
-			return 
+			return
 		}
 
 		response.WriteJson(w, http.StatusOK, map[string]string{"message": "item removed from wishlist", "result": "success"})
+	}
+}
+
+func FetchWishListItems(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		userIdstr := r.PathValue("user_id")
+
+		userId, err := strconv.Atoi(userIdstr)
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
+
+		wishListItems, products, err := storage.FetchWishListItems(userId)
+
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
+
+		payload := map[string]interface{}{
+			"message":       "cart Items fetched successfully!",
+			"result":        "success",
+			"wishListItems": wishListItems,
+			"products":      products,
+		}
+
+		response.WriteJson(w, http.StatusOK, payload)
+
 	}
 }

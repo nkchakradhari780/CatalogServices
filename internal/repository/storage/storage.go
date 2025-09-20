@@ -16,6 +16,7 @@ type Storage interface {
 
 	AddToWishList(user_id int, product_id int) (int, error)
 	RemoveFromWishList(user_id int, product_id int) error 
+	FetchWishListItems(user_id int) ([]modules.WishList, []modules.Product, error)
 
 	AddToCart(user_id int, product_id int, quantity int, discount int) (int, error)
 	RemoveFromCart(user_id int, product_id int) error 

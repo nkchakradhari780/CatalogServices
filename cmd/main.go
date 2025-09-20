@@ -46,6 +46,7 @@ func main() {
 
 	router.HandleFunc("POST /wishlist/{user_id}/{product_id}", api.AddToWishList(storage))
 	router.HandleFunc("DELETE /wishlist/{user_id}/{product_id}", api.RemoveFromWishList(storage))
+	router.HandleFunc("GET /wishlist/{user_id}", api.FetchWishListItems(storage))
 
 	router.HandleFunc("POST /cart/{user_id}/{product_id}", api.AddToCart(storage))
 	router.HandleFunc("DELETE /cart/{user_id}/{product_id}", api.RemoveFromCart(storage))
